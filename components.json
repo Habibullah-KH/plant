@@ -1,0 +1,4 @@
+{
+  "deprecated": true,
+  "note": "shadcn UI was removed from this project. Using daisyUI now."
+}
