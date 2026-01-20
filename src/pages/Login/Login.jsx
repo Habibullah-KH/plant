@@ -1,36 +1,84 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import {
-  Apple,
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Facebook,
-  Grid2X2,
-  MapPin,
-} from "lucide-react";
+import { useContext, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { Apple, ArrowLeft, Eye, EyeOff, Facebook, MapPin } from "lucide-react";
+import Swal from "sweetalert2";
+import { FcGoogle } from "react-icons/fc";
 
 import BrandLogo from "../../components/BrandLogo";
 import heroImage from "../../assets/images/demo.jpg";
+import AuthContext from "../../context/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || "/";
+
+  const { logInUser, googleSignIn } = useContext(AuthContext) || {};
+
+  const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordValue, setPasswordValue] = useState("");
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const form = event.target;
 
     const email = form.email.value;
     const password = form.password.value;
 
-    // Placeholder until you wire Firebase auth / backend login.
-    // eslint-disable-next-line no-alert
-    alert(`Login submitted: ${email}`);
+    if (!logInUser) {
+      Swal.fire({ icon: "error", title: "Auth not ready" });
+      return;
+    }
 
-    form.reset();
-    setPasswordValue("");
+    try {
+      setSubmitting(true);
+      await logInUser(email, password);
+      Swal.fire({
+        icon: "success",
+        title: "Logged in",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+      navigate(from, { replace: true });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Login failed",
+        text: error?.message || "Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+      form.reset();
+      setPasswordValue("");
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!googleSignIn) {
+      Swal.fire({ icon: "error", title: "Google sign-in not ready" });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await googleSignIn();
+      Swal.fire({
+        icon: "success",
+        title: "Logged in",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+      navigate(from, { replace: true });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Google sign-in failed",
+        text: error?.message || "Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const passwordHint = useMemo(() => {
@@ -66,17 +114,12 @@ export default function Login() {
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
-
-                <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm">
-                  <Grid2X2 className="h-4 w-4" />
-                  <span className="font-medium">Menu</span>
-                </div>
               </div>
 
               <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm">
                 <MapPin className="h-4 w-4" />
-                <span className="font-medium">Canada</span>
-                <span aria-hidden="true">🇨🇦</span>
+                <span className="font-medium">Bangladesh</span>
+                <span aria-hidden="true">BD</span>
               </div>
             </div>
 
@@ -111,23 +154,13 @@ export default function Login() {
                 <button
                   type="button"
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
-                  aria-label="Continue with Facebook"
-                >
-                  <Facebook className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
-                  aria-label="Continue with Apple"
-                >
-                  <Apple className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
                   aria-label="Continue with Google"
+                  onClick={handleGoogleSignIn}
+                  disabled={submitting}
                 >
-                  <span className="text-base font-semibold">G</span>
+                  <span className="text-base font-semibold">
+                    <FcGoogle />
+                  </span>
                 </button>
               </div>
             </div>
@@ -217,8 +250,9 @@ export default function Login() {
               <button
                 type="submit"
                 className="mt-2 w-full rounded-2xl bg-black px-4 py-4 text-sm font-semibold text-white shadow hover:bg-gray-900"
+                disabled={submitting}
               >
-                Start your adventure
+                {submitting ? "Signing in…" : "Start your adventure"}
               </button>
 
               <p className="text-center text-xs text-gray-600">
@@ -246,23 +280,6 @@ export default function Login() {
             className="absolute inset-0 h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/10 to-black/55" />
-
-          {/* Top right location card */}
-          <div className="absolute right-6 top-6 rounded-2xl bg-white/90 px-4 py-3 text-sm shadow backdrop-blur">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                <MapPin className="h-3.5 w-3.5" />
-              </span>
-              <div className="leading-tight">
-                <div className="font-semibold">
-                  Pacific Rim National Park Reserve
-                </div>
-                <div className="text-xs text-gray-600">
-                  Vancouver Island, British Columbia
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Main hero text */}
           <div className="absolute bottom-10 left-8 right-8">

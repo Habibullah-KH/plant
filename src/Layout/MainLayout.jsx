@@ -6,7 +6,7 @@ export default function MainLayout() {
   return (
     <>
       <Navbar />
-      <div className="min-h-[calc(100vh - 390.4px)]">
+      <div className="min-h-[calc(100vh-391px)]">
         <Outlet />
       </div>
       <Footer />

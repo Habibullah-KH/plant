@@ -1,21 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import {
-  Apple,
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Facebook,
-  Grid2X2,
-  MapPin,
-} from "lucide-react";
+import { Apple, ArrowLeft, Eye, EyeOff, Facebook, MapPin } from "lucide-react";
+import Swal from "sweetalert2";
+import { FcGoogle } from "react-icons/fc";
 
 import BrandLogo from "../../components/BrandLogo";
 import heroImage from "../../assets/images/demo.jpg";
 import ImageModal from "../../components/ImageModal";
+import AuthContext from "../../context/AuthContext";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { createUser, updateUser, googleSignIn, user } =
+    useContext(AuthContext) || {};
+
+  const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordValue, setPasswordValue] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
@@ -41,19 +40,77 @@ export default function Signup() {
     setPreviewUrl(url);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const form = event.target;
 
     const name = form.name.value;
     const email = form.email.value;
     const password = form.password.value;
-    const image = form.image.files?.[0] || null;
 
-    console.log({ name, email, password, image });
-    form.reset();
-    setPasswordValue("");
-    setPreviewUrl("");
+    if (!createUser) {
+      Swal.fire({ icon: "error", title: "Auth not ready" });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await createUser(email, password);
+      if (updateUser) {
+        await updateUser({
+          displayName: name,
+          photoURL: "",
+        });
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Account created",
+        timer: 1400,
+        showConfirmButton: false,
+      });
+      navigate("/", { replace: true });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Signup failed",
+        text: error?.message || "Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+      form.reset();
+      setPasswordValue("");
+      setPreviewUrl("");
+      setImageFile(null);
+    }
+  };
+
+  console.log(user);
+  const handleGoogleSignIn = async () => {
+    if (!googleSignIn) {
+      Swal.fire({ icon: "error", title: "Google sign-in not ready" });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await googleSignIn();
+      Swal.fire({
+        icon: "success",
+        title: "Welcome!",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+      navigate("/", { replace: true });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Google sign-in failed",
+        text: error?.message || "Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const passwordStrength = useMemo(() => {
@@ -94,20 +151,16 @@ export default function Signup() {
                   type="button"
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
                   aria-label="Back"
+                  onClick={() => navigate(-1)}
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
-
-                <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm">
-                  <Grid2X2 className="h-4 w-4" />
-                  <span className="font-medium">Menu</span>
-                </div>
               </div>
 
               <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm">
                 <MapPin className="h-4 w-4" />
-                <span className="font-medium">Canada</span>
-                <span aria-hidden="true">🇨🇦</span>
+                <span className="font-medium">Bangladesh</span>
+                <span aria-hidden="true">BD</span>
               </div>
             </div>
 
@@ -142,23 +195,13 @@ export default function Signup() {
                 <button
                   type="button"
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
-                  aria-label="Continue with Facebook"
-                >
-                  <Facebook className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
-                  aria-label="Continue with Apple"
-                >
-                  <Apple className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
                   aria-label="Continue with Google"
+                  onClick={handleGoogleSignIn}
+                  disabled={submitting}
                 >
-                  <span className="text-base font-semibold">G</span>
+                  <span className="text-base font-semibold">
+                    <FcGoogle />
+                  </span>
                 </button>
               </div>
             </div>
@@ -200,19 +243,18 @@ export default function Signup() {
                     accept="image/*"
                     className="file-input file-input-bordered w-full rounded-xl"
                     onChange={handleImageChange}
-                    required
                   />
 
                   {previewUrl ? (
                     <button
                       type="button"
                       onClick={() => setOpenModal(true)}
-                      className="group h-11 w-11 overflow-hidden rounded-full border border-gray-800 bg-gray-50"
+                      className="group h-10 w-12 overflow-hidden rounded-full border border-gray-800 bg-gray-50"
                     >
                       <img
                         src={previewUrl}
                         alt="Preview"
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-110"
                       />
                     </button>
                   ) : null}
@@ -285,19 +327,14 @@ export default function Signup() {
                   />
                   Remember me
                 </label>
-                <button
-                  type="button"
-                  className="text-xs font-medium text-gray-700 hover:text-black"
-                >
-                  Forgot?
-                </button>
               </div>
 
               <button
                 type="submit"
                 className="mt-2 w-full rounded-2xl bg-black px-4 py-4 text-sm font-semibold text-white shadow hover:bg-gray-900"
+                disabled={submitting}
               >
-                Start your adventure
+                {submitting ? "Creating account…" : "Start your adventure"}
               </button>
 
               <p className="text-center text-xs text-gray-600">
@@ -326,22 +363,6 @@ export default function Signup() {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/10 to-black/55" />
 
-          {/* Top right location card */}
-          <div className="absolute right-6 top-6 rounded-2xl bg-white/90 px-4 py-3 text-sm shadow backdrop-blur">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                <MapPin className="h-3.5 w-3.5" />
-              </span>
-              <div className="leading-tight">
-                <div className="font-semibold">
-                  Pacific Rim National Park Reserve
-                </div>
-                <div className="text-xs text-gray-600">
-                  Vancouver Island, British Columbia
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Floating gallery card */}
           <div className="absolute left-6 top-20 w-60 rounded-3xl bg-black/35 p-3 text-white shadow backdrop-blur">

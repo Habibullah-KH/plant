@@ -8,7 +8,7 @@ export default function BrandLogo({ variant = "navbar" }) {
       <span
         className={
           isAuth
-            ? "inline-block h-14 w-14 rounded-2xl bg-green-600 shadow-sm"
+            ? "inline-block h-14 w-14 rounded-full bg-green-600 shadow-sm"
             : "inline-block h-8 w-8 rounded-full bg-green-600"
         }
         aria-hidden="true"
@@ -16,8 +16,8 @@ export default function BrandLogo({ variant = "navbar" }) {
       <span
         className={
           isAuth
-            ? "text-xl font-semibold tracking-tight text-gray-900"
-            : "text-lg font-semibold text-gray-900"
+            ? "text-xl font-semibold tracking-tight"
+            : "text-lg font-semibold"
         }
       >
         Plant
