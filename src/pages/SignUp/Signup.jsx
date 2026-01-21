@@ -8,10 +8,11 @@ import BrandLogo from "../../components/BrandLogo";
 import heroImage from "../../assets/images/demo.jpg";
 import ImageModal from "../../components/ImageModal";
 import AuthContext from "../../context/AuthContext";
+import imageUpload from "../../lib/imageUpload";
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { createUser, updateUser, googleSignIn, user } =
+  const { createUser, updateUser, googleSignIn } =
     useContext(AuthContext) || {};
 
   const [submitting, setSubmitting] = useState(false);
@@ -48,28 +49,34 @@ export default function Signup() {
     const email = form.email.value;
     const password = form.password.value;
 
-    if (!createUser) {
-      Swal.fire({ icon: "error", title: "Auth not ready" });
-      return;
-    }
-
     try {
       setSubmitting(true);
-      await createUser(email, password);
-      if (updateUser) {
-        await updateUser({
-          displayName: name,
-          photoURL: "",
-        });
-      }
+     const imgData = await imageUpload(imageFile);
+     if(!imgData || !imageFile){
+      return (
+         Swal.fire({
+        icon: "error",
+        title: "Image upload failed",
+        text: "Please try again.",
+      })
+      );
+     }
+     console.log(imgData.data.data.display_url);
+      // await createUser(email, password);
+      // if (updateUser) {
+      //   await updateUser({
+      //     displayName: name,
+      //     photoURL: "",
+      //   });
+      // }
 
-      Swal.fire({
-        icon: "success",
-        title: "Account created",
-        timer: 1400,
-        showConfirmButton: false,
-      });
-      navigate("/", { replace: true });
+      // Swal.fire({
+      //   icon: "success",
+      //   title: "Account created",
+      //   timer: 1400,
+      //   showConfirmButton: false,
+      // });
+      // navigate("/", { replace: true });
     } catch (error) {
       Swal.fire({
         icon: "error",
@@ -85,12 +92,7 @@ export default function Signup() {
     }
   };
 
-  console.log(user);
   const handleGoogleSignIn = async () => {
-    if (!googleSignIn) {
-      Swal.fire({ icon: "error", title: "Google sign-in not ready" });
-      return;
-    }
 
     try {
       setSubmitting(true);
@@ -243,6 +245,7 @@ export default function Signup() {
                     accept="image/*"
                     className="file-input file-input-bordered w-full rounded-xl"
                     onChange={handleImageChange}
+                    required
                   />
 
                   {previewUrl ? (
